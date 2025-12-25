@@ -1,0 +1,27 @@
+# Core Python
+numpy
+pandas
+
+# Computer Vision & Deep Learning
+torch
+torchvision
+Pillow
+opencv-python
+
+# CLIP (OpenAI)
+git+https://github.com/openai/CLIP.git
+
+# Vector Search
+faiss-cpu
+
+# API & Serving
+fastapi
+uvicorn
+
+# UI
+streamlit
+requests
+
+# Utilities
+tqdm
+scikit-learn
