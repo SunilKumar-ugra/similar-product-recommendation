@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: recommender_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./data/processed:/app/data/processed
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    container_name: recommender_ui
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      - API_URL=http://api:8000/recommend
+    restart: unless-stopped

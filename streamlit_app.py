@@ -5,7 +5,10 @@ import requests
 # =======================
 # CONFIG
 # =======================
-API_URL = "http://127.0.0.1:8000/recommend"
+# API_URL = "http://127.0.0.1:8000/recommend"
+import os
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/recommend")
+
 METADATA_PATH = "data/processed/metadata.csv"
 K = 5
 

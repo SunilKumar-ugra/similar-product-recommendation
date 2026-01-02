@@ -1,0 +1,29 @@
+FROM python:3.10-slim
+
+# System deps for FAISS & OpenCV
+# RUN apt-get update && apt-get install -y \
+#     build-essential \
+#     libgl1 \
+#     && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only requirements first (better caching)
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY src ./src
+COPY artifacts ./artifacts
+COPY data/processed ./data/processed
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
