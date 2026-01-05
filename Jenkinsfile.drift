@@ -1,0 +1,117 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('H 2 * * *')   // Nightly
+    }
+
+    environment {
+        PYTHONUNBUFFERED = '1'
+        SLACK_WEBHOOK_URL = credentials('SLACK_WEBHOOK_URL')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup Python Env') {
+            steps {
+                sh '''
+                    python3 -m venv .venv || true
+                    . .venv/bin/activate
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Run Drift Checks') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                            . .venv/bin/activate
+                            python src/monitoring/run_drift_checks.py
+                        '''
+                        env.DRIFT_STATUS = "OK"
+                    } catch (Exception e) {
+                        env.DRIFT_STATUS = "CRITICAL"
+                        echo "🚨 Critical drift detected"
+                    }
+                }
+            }
+        }
+
+        stage('Backup Artifacts') {
+            when {
+                expression { env.DRIFT_STATUS == "CRITICAL" }
+            }
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    python entrypoints/backup_artifacts.py
+                '''
+            }
+        }
+
+        stage('Rebuild Artifacts') {
+            when {
+                expression { env.DRIFT_STATUS == "CRITICAL" }
+            }
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    python entrypoints/build_artifacts.py
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                expression { env.DRIFT_STATUS == "CRITICAL" }
+            }
+            steps {
+                sh '''
+                    docker compose down
+                    docker compose up -d
+                '''
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "❌ Pipeline failed — initiating rollback"
+            sh '''
+                . .venv/bin/activate
+                python entrypoints/rollback_artifacts.py
+            '''
+            sh 'docker compose up -d'
+
+            sh '''
+                python - <<EOF
+import requests, os
+requests.post(
+    os.getenv("SLACK_WEBHOOK_URL"),
+    json={"text": "🚨 Drift retraining failed. Rolled back to previous artifacts."}
+)
+EOF
+            '''
+        }
+
+        success {
+            sh '''
+                python - <<EOF
+import requests, os
+requests.post(
+    os.getenv("SLACK_WEBHOOK_URL"),
+    json={"text": "✅ Drift handled successfully. System redeployed."}
+)
+EOF
+            '''
+        }
+    }
+}
