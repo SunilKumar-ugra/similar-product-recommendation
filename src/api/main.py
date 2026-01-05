@@ -6,10 +6,27 @@ from src.api.faiss_index import FaissIndex
 from src.api.rerank import rerank
 from src.api.schemas import RecommendationResponse
 from src.api.mmr import mmr_rerank
+from src.api.startup_checks import validate_artifacts
 
 
 app = FastAPI(title="Similarity Search API")
 
+# ---- FAIL-FAST ARTIFACT CHECKS ----
+print("🔍 Validating model artifacts...")
+
+validate_artifacts(
+    emb_path="artifacts/clip_image/embeddings.npy",
+    ids_path="artifacts/clip_image/product_ids.npy",
+    model_name="CLIP"
+)
+
+validate_artifacts(
+    emb_path="artifacts/hybrid/embeddings.npy",
+    ids_path="artifacts/hybrid/product_ids.npy",
+    model_name="HYBRID"
+)
+
+print("🚀 All artifacts validated. Starting API...")
 # ----------------------------
 # Load resources ONCE
 # ----------------------------
