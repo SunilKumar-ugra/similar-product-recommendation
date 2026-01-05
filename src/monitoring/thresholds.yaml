@@ -1,0 +1,11 @@
+embedding_drift:
+  warn: 0.15
+  critical: 0.30
+
+category_psi:
+  warn: 0.20
+  critical: 0.40
+
+precision_drop:
+  warn: 0.05
+  critical: 0.10
